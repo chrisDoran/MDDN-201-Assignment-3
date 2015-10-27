@@ -1,0 +1,91 @@
+<html>
+  <head>
+    <!-- stylesheet -->
+    <link href="public/Data/canvas/css/literallycanvas.css" rel="stylesheet">
+
+    <!-- dependency: React.js -->
+    <script src="/public/Data/React/build/react-with-addons.js"></script>
+
+    <!-- Literally Canvas -->
+    <script src="/public/Data/canvas/js/literallycanvas.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  </head>
+  <body>
+    
+
+    <div class="literally" style="width: 1920px; height: 1080px;" style="background-colour:white;"></div>
+    <img id="update" src="img/updateButton.png" style="top: 2%; left: 50%; position: fixed;">
+    <script>
+     
+      var serverImage = null;
+      var lc = null;
+
+      //Initalise the canvas with the current server state
+      syncCanvas('init');
+
+      function initCanvas(){
+
+        lc = LC.init(
+            document.getElementsByClassName('literally')[0],
+            {imageSize: {width: null, height: null}, toolbarPosition : 'hidden',  
+              backgroundShapes: [
+                lc.createShape('Image', {x: 0, y: 0, image: backgroundImage, scale: 1})
+              ]
+            }
+            {imageSize: {width: null, height: null}, toolbarPosition : 'hidden' }
+        ); 
+        updateCanvas('init');
+      }
+
+      function syncCanvas(action) {
+        $.ajax({
+          url: "http://drawthings.herokuapp.com/load",
+          contentType: 'application/json',
+          type: "GET",
+          success: function (data) {
+            var png = JSON.parse(data.image);
+            serverImage = png;
+            if(action === 'init'){
+              console.log("action == init");
+              initCanvas();
+            }
+            else if(action === 'update'){
+              console.log("action == update");
+              updateCanvas(action);
+            } 
+          },
+          error: function (jqXHR, textStatus, err) {
+              alert('text status '+textStatus+', err '+err)
+          }
+        });
+      }
+      function updateCanvas(action) {
+        var serverShape = new Image();
+        serverShape.src = serverImage;
+        lc.saveShape(LC.createShape('Image', {x: 0, y: 0, image: serverShape}));
+        if(action === 'update'){
+          postCanvas();
+        }
+        
+      }
+      function postCanvas(){
+        var data = { "imgURL" : lc.getImage().toDataURL() };
+        data = JSON.stringify(data);
+        console.log(data);
+        $.ajax({
+          url: "http://drawthings.herokuapp.com/save",
+          data: data,
+          contentType: 'application/json',
+          type: "POST",
+          success: function () {
+              console.log('Posted');
+          },
+          error: function (jqXHR, textStatus, err) {
+              alert('text status '+textStatus+', err '+err)
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
